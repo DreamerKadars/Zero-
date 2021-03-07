@@ -1,13 +1,17 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
 func main() {
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+
+	r.LoadHTMLGlob("../view/*")
+
+	r.GET("/index", Index)
+	r.GET("/someJSON", SomeJSON)
+
+	// 监听并在 0.0.0.0:8080 上启动服务
+	r.Run(":8080")
 }
