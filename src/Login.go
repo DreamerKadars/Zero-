@@ -9,7 +9,7 @@ import (
 )
 
 func Login(c *gin.Context) {
-	c.HTML(http.StatusOK, "login.html", gin.H{})
+	c.HTML(http.StatusOK, "login.html", Get_cookie(c))
 }
 func Login_verify(c *gin.Context) {
 	fmt.Println("接受用户登陆请求")
@@ -29,6 +29,7 @@ func Login_verify(c *gin.Context) {
 	} else {
 		result = err.Error()
 	}
+
 	data := Get_cookie(c)
 	data["result"] = result
 	c.HTML(http.StatusOK, "login_verify.html", data)

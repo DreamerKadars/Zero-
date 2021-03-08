@@ -15,6 +15,7 @@ func main() {
 	r.GET("/register", Register) //注册界面
 	r.GET("/login", Login)       //登陆界面
 	r.GET("/logout", Logout)     //注销
+	r.GET("/admpage", AdmPage)   //管理员
 	r.GET("/someJSON", SomeJSON)
 	r.POST("/register_verify", Register_verify) //注册验证
 	r.POST("/login_verify", Login_verify)       //登陆验证

@@ -1,0 +1,14 @@
+{{template "top" .}}
+<html>
+    {{if .Adm}}
+	<h1>数据库概览：</h1><hr>
+    <br>
+
+    {{range .DB_information}} {{. }}<br> {{end}}
+
+    <br>
+    {{else}}
+    <h1>没有权限访问</h1>
+    {{end}}
+</html>
+{{template "footer" .}}
