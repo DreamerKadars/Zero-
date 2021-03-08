@@ -16,9 +16,11 @@ func main() {
 	r.GET("/login", Login)       //登陆界面
 	r.GET("/logout", Logout)     //注销
 	r.GET("/admpage", AdmPage)   //管理员
+	r.GET("/MyPage", MyPage)     //用户主页
 	r.GET("/someJSON", SomeJSON)
 	r.POST("/register_verify", Register_verify) //注册验证
 	r.POST("/login_verify", Login_verify)       //登陆验证
+	r.POST("/Init_User_data", Init_User_data)   //更新用户数据
 	// 监听并在 0.0.0.0:8080 上启动服务
 	r.Run(":8080")
 
