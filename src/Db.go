@@ -16,6 +16,7 @@ type User struct {
 }
 
 func init() {
+	fmt.Print("开始连接数据库。。。")
 	database, _ := sqlx.Open("mysql", "root:ma794866734@tcp(81.70.159.251:3306)/Zero")
 	err := database.Ping()
 	if err != nil {
@@ -61,6 +62,9 @@ func DB_found(uid int, pwd string) error {
 	if err != nil {
 		fmt.Println("exec failed, ", err)
 		return err
+	}
+	if len(usr) == 0 {
+		return errors.New("用户名或者密码错误！")
 	}
 	return nil
 }

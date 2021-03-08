@@ -9,7 +9,7 @@ import (
 )
 
 func Register(c *gin.Context) {
-	c.HTML(http.StatusOK, "register.html", gin.H{"title": "Main website"})
+	c.HTML(http.StatusOK, "register.html", Get_cookie(c))
 }
 func Register_verify(c *gin.Context) {
 	fmt.Println("接受用户注册请求")
@@ -26,8 +26,7 @@ func Register_verify(c *gin.Context) {
 	} else {
 		result = err.Error()
 	}
-	data := map[string]interface{}{
-		"result": result,
-	}
+	data := Get_cookie(c)
+	data["result"] = result
 	c.HTML(http.StatusOK, "register_verify.html", data)
 }
