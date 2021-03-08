@@ -1,0 +1,24 @@
+{{template "top" .}}
+<body>
+    <div class='gcs-login'>
+       <div class="gcs-login-panel">
+            <form action ="/login_verify" method="post" enctype="application/x-www-form-urlencoded">
+                <div class="login-title">
+                   <h2>用户登陆</h2>
+                </div>
+                <div class="gcs-login-container">
+                    <input type="number" name="uid" class="input" placeholder="请输入uid" />
+                </div>
+                <div class="gcs-login-container">
+                    <input type="password" name="pwd" class="input" placeholder="请输入密码"/>
+                </div>
+                <br />
+                <br />
+                <div class="gcs-login-container">
+                    <input type="submit" value="立即登陆" class="btn-login" />
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+{{template "footer" .}}

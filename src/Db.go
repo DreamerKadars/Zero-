@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -16,57 +16,54 @@ type User struct {
 }
 
 func init() {
-	database, err := sqlx.Open("mysql", "root:ma794866734@tcp(81.70.159.251:3306)/Zero")
+	database, _ := sqlx.Open("mysql", "root:ma794866734@tcp(81.70.159.251:3306)/Zero")
+	err := database.Ping()
 	if err != nil {
-		fmt.Println("mysql数据库连接失败！", err)
-		os.Exit(0)
+		fmt.Println("连接数据库失败！")
 		return
 	}
-	fmt.Println(database)
-	fmt.Println("mysql数据库连接成功！")
-
+	fmt.Println("连接数据库成功！")
 	DB = database
 }
-func DB_register(uid int, pwd string) {
+func DB_connect() error {
+	//测试连接
+	database, _ := sqlx.Open("mysql", "root:ma794866734@tcp(81.70.159.251:3306)/Zero")
+	err := database.Ping()
+	if err != nil {
+		fmt.Println("连接数据库失败！")
+		return errors.New("连接失败")
+	}
+	fmt.Println("连接数据库成功！")
+	DB = database
+	return nil
+}
+func DB_register(uid int, pwd string) error {
+	//注册一个用户
 	sql := "insert into User (uid,pwd) values (?,?)"
 	r, err := DB.Exec(sql, uid, pwd)
 	if err != nil {
 		fmt.Println("exec failed,", err)
-		return
+		return err
 	}
 	id, err := r.LastInsertId()
 	if err != nil {
 		fmt.Println("exec failed,", err)
-		return
+		return err
 	}
 	fmt.Println("insert succ", id)
 	fmt.Println(uid, " ", pwd)
-
+	return nil
 }
-
-// func register(uid int, pwd string) {
-// 	sql := "insert into User (uid,pwd) values (?,?)"
-// 	r, err := db.Exec(sql, uid, pwd)
-// 	if err != nil {
-// 		fmt.Println("exec failed,", err)
-// 		return
-// 	}
-// 	id, err := r.LastInsertId()
-// 	if err != nil {
-// 		fmt.Println("exec failed,", err)
-// 		return
-// 	}
-// 	fmt.Println("insert succ", id)
-// 	fmt.Println(uid, " ", pwd)
-// }
-// func found(uid int, pwd string) bool {
-// 	var usr []User
-// 	sql := "select uid, pwd from User where uid=? && pwd =? "
-// 	err := db.Select(&usr, sql, uid, pwd)
-// 	if err != nil {
-// 		fmt.Println("exec failed, ", err)
-// 		return false
-// 	}
+func DB_found(uid int, pwd string) error {
+	var usr []User
+	sql := "select uid, pwd from User where uid=? && pwd =? "
+	err := DB.Select(&usr, sql, uid, pwd)
+	if err != nil {
+		fmt.Println("exec failed, ", err)
+		return err
+	}
+	return nil
+}
 
 // 	if len(usr) == 1 {
 // 		fmt.Println("select succ:", usr)
