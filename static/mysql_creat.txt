@@ -1,6 +1,7 @@
 create table User(
     uid int not null primary key,
     pwd varchar(20) not null )comment = '用户登陆表';
+
 create table User_data(
     uid int not null primary key,
     name varchar(20) not null ,
@@ -9,16 +10,19 @@ create table User_data(
     buff1 int ,
     buff2 int ,
     buff3 int )comment = '用户信息表';
+
 create table Boss_data(
     Boss_id int not null primary key,
     Hp int not null,
     play_num int not null
 ) comment = 'Boss信息';
+
 create table User_history(
     uid int not null,
     Boss_id int not null,
     HP int not null
 ) comment = '用户历史';
+
 create table Now_Battle(
     Boss_id  int not null ,
     uid int not null
