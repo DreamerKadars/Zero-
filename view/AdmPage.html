@@ -1,14 +1,15 @@
 {{template "top" .}}
 <html>
     {{if .Adm}}
-	<h1>数据库概览：</h1><hr>
-    <br>
-
-    {{range .DB_information}} {{. }}<br> {{end}}
-
-    <br>
+	    <h1>数据库概览：</h1><hr>
+        <br>
+        {{range .DB_information}} {{. }}<br> {{end}}
+        <hr>
+        <a href="Boss_data_page">管理Boss信息库</a>
+        <hr>
+        
     {{else}}
-    <h1>没有权限访问</h1>
+        <h1>没有权限访问</h1>
     {{end}}
 </html>
 {{template "footer" .}}

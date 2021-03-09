@@ -14,13 +14,15 @@ create table User_data(
 create table Boss_data(
     Boss_id int not null primary key,
     Hp int not null,
-    play_num int not null
+    Max_Hp int not null,
+    play_num int not null,
+    mola int not null
 ) comment = 'Boss信息';
 
 create table User_history(
     uid int not null,
     Boss_id int not null,
-    HP int not null
+    Hp int not null
 ) comment = '用户历史';
 
 create table Now_Battle(
@@ -31,3 +33,8 @@ create table Now_Battle(
 create table Adm(
     uid int not null primary key
 ) comment = '管理员账号';
+
+create table Test(
+    test int primary key,
+    IsNull varchar(10)
+) comment = '测试用';

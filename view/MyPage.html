@@ -1,10 +1,14 @@
 {{template "top" .}}
 <html>
-	<h1>
-        {{if .Data_falg}}
-            {{range .User_data_str}} {{. }}<br> {{end}}
-        {{else}}
-        <p>第一次访问主页，请输入你的名字，将为你生成信息</p>
+    {{if .Data_falg}}
+
+        <h1>你的基本信息：</h1><br>
+        {{range .User_data_str}} {{. }}<br> {{end}}
+        
+    {{else}}
+        <h1>
+            <p>第一次访问主页，请输入你的名字，将为你生成信息</p>
+        </h1>
         <form id="formid" action ="/Init_User_data" method="post" enctype="application/x-www-form-urlencoded">
             <div style="width: 90px;float: left">
                 <input class="tl-price-input" type="text" name="name" placeholder="Kadars">
@@ -13,8 +17,7 @@
         <div style="width: 60px;float: left;margin-left: 20px"></div>
             <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">开始生成</button>
         </div>
-
-        {{end}}
-	</h1>
+    {{end}}
+	
 </html>
 {{template "footer" .}}

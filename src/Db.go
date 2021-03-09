@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -25,13 +26,15 @@ type User_data struct {
 }
 type Boss_data struct {
 	Boss_id  int `db:"Boss_id"`
-	Hp       int `db:"HP"`
-	Play_num int `db:"paly_num"`
+	Hp       int `db:"Hp"`
+	Max_Hp   int `db:"Max_Hp"`
+	Play_num int `db:"play_num"`
+	Mola     int `db:"mola"`
 }
 type User_history struct {
 	Uid     int `db:"uid"`
 	Boss_id int `db:"Boss_id"`
-	Hp      int `db:"HP"`
+	Hp      int `db:"Hp"`
 }
 type Now_Battle struct {
 	Boss_id int `db:"Boss_id"`
@@ -165,4 +168,45 @@ func DB_insert_User_data(U_D User_data) error {
 	}
 	fmt.Println("insert succ", id)
 	return nil
+}
+
+//查询展示Boos的信息
+func DB_get_Boos_Data() ([]Boss_data, error) {
+	var B_d []Boss_data
+	sql := "select * from Boss_data "
+	err := DB.Select(&B_d, sql)
+	if err != nil {
+		fmt.Println("exec failed, ", err)
+		return B_d, err
+	}
+	return B_d, nil
+}
+
+//插入Boss信息
+//为Boss注册信息
+func DB_insert_Boss_data(B_d []Boss_data) error {
+	if B_d == nil {
+		return errors.New("要插入的内容为空！")
+	}
+	sql := "insert into Boss_data (Boss_id,Hp,Max_HP,play_num,mola) values (?,?,?,?,?)"
+	for _, Boss := range B_d {
+		_, err := DB.Exec(sql, Boss.Boss_id, Boss.Hp, Boss.Max_Hp, Boss.Play_num, Boss.Mola)
+		if err != nil {
+			fmt.Println("exec failed,", err)
+			return err
+		}
+	}
+	return nil
+}
+
+//求Boss_id的最大值
+func DB_get_maxBoss_id() int {
+	sql_str := "select max(Boss_id) from Boss_data"
+	var num []sql.NullInt32
+	DB.Select(&num, sql_str)
+	if num[0].Valid {
+		return int(num[0].Int32)
+	} else {
+		return 0
+	}
 }
