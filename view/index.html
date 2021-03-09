@@ -2,7 +2,12 @@
 <html>
 	<h1>
 		欢迎来到首页
-		{{.}}
 	</h1>
+	{{if .login_flag}}
+        {{template "Main_Page" .}}
+    {{else}}
+		<hr>
+        <h1>您好请先登陆！</h1>
+    {{end}}
 </html>
 {{template "footer" .}}

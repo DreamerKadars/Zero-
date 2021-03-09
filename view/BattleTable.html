@@ -1,0 +1,14 @@
+{{define "BattleTable"}}
+<table border="1">
+    <tr>
+        <td>Boss id</td>
+        <td>造成伤害</td>
+    </tr>   
+    {{range .User_history}} 
+        <tr>
+            <td>{{ .Boss_id}}</td>
+            <td>{{ .Hp}}</td>
+        </tr>
+    {{end}}
+</table>
+{{end}}

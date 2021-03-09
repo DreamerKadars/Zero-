@@ -3,8 +3,9 @@
     {{if .Data_falg}}
 
         <h1>你的基本信息：</h1><br>
-        {{range .User_data_str}} {{. }}<br> {{end}}
+        {{template "User_data" .}}
         
+
     {{else}}
         <h1>
             <p>第一次访问主页，请输入你的名字，将为你生成信息</p>

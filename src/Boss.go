@@ -26,7 +26,7 @@ func Boss_data_add(c *gin.Context) {
 	c.Redirect(http.StatusMovedPermanently, "admpage")
 }
 func Boss_data_page(c *gin.Context) {
-	B_D, _ := DB_get_Boos_Data()
+	B_D, _ := DB_get_Boss_Data()
 	data := Get_cookie(c)
 	data["Boss_Data"] = B_D
 	c.HTML(http.StatusOK, "boss_page.html", data)

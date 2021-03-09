@@ -1,0 +1,31 @@
+{{define "Main_Page"}}
+    <h1>用户主页</h1>
+    用户主页
+    <hr>
+    <h1>战斗菜单</h1>
+    {{if .battle}}
+        <p>你现在正在进行的战斗：</p><br>
+        {{range .user_battle}}
+            <h2>    </h2><a href= "BattlePage?Boss_id={{.Boss_id}}" >Bossid：{{.Boss_id}} </a><br>
+        {{end}}
+    {{else}}
+        <p>您现在没有参加任何一场战斗，请先参见一场战斗</p>
+    {{end}}
+    <hr>
+    <h1>参与战斗:</h1>
+    <h1>当前Boss概览:</h1><br>
+    {{template "BossTable" .}}
+    <p>请输入你想参与的Boss id</p><br>
+    <form id="formid" action ="/Join_Battle" method="post" enctype="application/x-www-form-urlencoded">
+        <div style="width: 90px;float: left">
+            <input class="tl-price-input" type="number" name="Boss_id" placeholder="1001">
+        </div>
+    </form>
+    <div style="width: 60px;float: left;margin-left: 20px"></div>
+        <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">参与</button>
+    </div>
+    <hr>
+    <h1>战斗历史</h1>
+    {{template "BattleTable" .}}
+    
+{{end}}

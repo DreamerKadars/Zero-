@@ -12,6 +12,6 @@ func Get_cookie(c *gin.Context) map[string]interface{} {
 		return data
 	}
 	data["uid"] = uid
-	data["login_flag"] = 1
+	data["login_flag"] = true
 	return data
 }

@@ -3,7 +3,7 @@
 	<h1>
         <hr>
         <h1>生成Boss</h1>
-        请输入随机生成的Boss数量：<br>
+        <p>请输入随机生成的Boss数量：</p><br>
         <form id="formid" action ="/Boss_data_add" method="post" enctype="application/x-www-form-urlencoded">
             <div style="width: 90px;float: left">
                 <input class="tl-price-input" type="number" name="boss_num" placeholder="10">
@@ -13,25 +13,7 @@
             <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">生成</button>
         </div>
         <hr>
-        <h1>当前Boss概览:</h1><br>
-        <table border="1">
-            <tr>
-              <td>Boss id</td>
-              <td>剩余血量</td>
-              <td>最大血量</td>
-              <td>攻略玩家</td>
-              <td>赏金</td>
-            </tr>   
-            {{range .Boss_Data}} 
-            <tr>
-                <td>{{ .Boss_id}}</td>
-                <td>{{ .Hp}}</td>
-                <td>{{ .Max_Hp}}</td>
-                <td>{{ .Play_num}}</td>
-                <td>{{ .Mola}}</td>
-            </tr>
-            {{end}}
-        </table>
+        {{template "BossTable" .}}
 	</h1>
 </html>
 {{template "footer" .}}

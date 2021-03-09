@@ -171,7 +171,7 @@ func DB_insert_User_data(U_D User_data) error {
 }
 
 //查询展示Boos的信息
-func DB_get_Boos_Data() ([]Boss_data, error) {
+func DB_get_Boss_Data() ([]Boss_data, error) {
 	var B_d []Boss_data
 	sql := "select * from Boss_data "
 	err := DB.Select(&B_d, sql)
@@ -209,4 +209,44 @@ func DB_get_maxBoss_id() int {
 	} else {
 		return 0
 	}
+}
+
+//获得用户当前正在进行的Battle
+func DB_get_Battle(uid int) []Now_Battle {
+	var now_battle []Now_Battle
+	sql_str := "select * from Now_Battle where uid = ?"
+	DB.Select(&now_battle, sql_str, uid)
+	return now_battle
+}
+
+//获得用户过去的历史
+func DB_get_History(uid int) []User_history {
+	var user_history []User_history
+	sql_str := "select * from User_history where uid = ?"
+	DB.Select(&user_history, sql_str, uid)
+	return user_history
+}
+
+//用户参与战斗
+func DB_join_battle(uid, Boss_id int) error {
+	sql := "insert into Now_Battle (Boss_id,uid) values (?,?)"
+	r, err := DB.Exec(sql, Boss_id, uid)
+	if err != nil {
+		fmt.Println("exec failed,", err)
+		return err
+	}
+	_, err = r.LastInsertId()
+	if err != nil {
+		fmt.Println("exec failed,", err)
+		return err
+	}
+	return nil
+}
+
+//与该用户打同一boss的对手
+func DB_Compete(uid int, boss_id int) []User_data {
+	var user_data []User_data
+	sql_str := "select (,) from Now_battle inner join User_data on Now_battle.uid=User_data.uid where User_data.uid != ? and boss_id=?"
+	DB.Select(&user_data, sql_str, uid, boss_id)
+	return user_data
 }

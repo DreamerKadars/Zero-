@@ -1,0 +1,20 @@
+{{define "BossTable"}}
+<table border="1">
+    <tr>
+        <td>Boss id</td>
+        <td>剩余血量</td>
+        <td>最大血量</td>
+        <td>攻略玩家</td>
+        <td>赏金</td>
+    </tr>   
+    {{range .Boss_Data}} 
+        <tr>
+            <td>{{ .Boss_id}}</td>
+            <td>{{ .Hp}}</td>
+            <td>{{ .Max_Hp}}</td>
+            <td>{{ .Play_num}}</td>
+            <td>{{ .Mola}}</td>
+        </tr>
+    {{end}}
+</table>
+{{end}}

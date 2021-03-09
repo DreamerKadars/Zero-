@@ -28,5 +28,5 @@ func Register_verify(c *gin.Context) {
 	}
 	data := Get_cookie(c)
 	data["result"] = result
-	c.HTML(http.StatusOK, "register_verify.html", data)
+	c.HTML(http.StatusOK, "verify.html", data)
 }
