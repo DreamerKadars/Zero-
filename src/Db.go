@@ -253,11 +253,19 @@ func DB_join_battle(uid, Boss_id int) error {
 	if a[0].Hp == 0 {
 		return errors.New("此Boss已经被击败！！！")
 	}
+
 	sql := "insert into Now_Battle (Boss_id,uid) values (?,?)"
 	r, err := DB.Exec(sql, Boss_id, uid)
 	if err != nil {
 		fmt.Println("exec failed,", err)
 		return err
+	}
+	//add——playnum
+
+	sql = "update Boss_data set play_num=play_num+1 where Boss_id=?"
+	_, err = DB.Exec(sql, Boss_id)
+	if err != nil {
+		fmt.Println(err.Error())
 	}
 	_, err = r.LastInsertId()
 	if err != nil {
@@ -282,7 +290,7 @@ type Hit struct {
 	uid     int
 	boss_id int
 	atk     int
-	Re_chan chan bool
+	Re_chan chan int
 }
 
 var Hit_ch chan Hit = make(chan Hit)
@@ -299,13 +307,13 @@ func DB_Hit_Boss(h Hit) error {
 	var num []sql.NullInt32
 	DB.Select(&num, sql_str, h.boss_id)
 	if num == nil || !num[0].Valid {
-		h.Re_chan <- false
+		h.Re_chan <- 0
 		close(h.Re_chan)
 		return errors.New("没有这个Boss")
 	}
 	Hp := num[0].Int32
 	if Hp == 0 {
-		h.Re_chan <- false
+		h.Re_chan <- 0
 		close(h.Re_chan)
 		return errors.New("此Boss已经挂了")
 	}
@@ -317,8 +325,37 @@ func DB_Hit_Boss(h Hit) error {
 
 	sql_str = "update Boss_data set HP=? where Boss_id=?"
 	_, err := DB.Exec(sql_str, Hp, h.boss_id) //更新boss状态
+
+	if Hp == 0 {
+		sql_str := "select mola from Boss_data where Boss_id = ?"
+		var num []sql.NullInt32
+		err = DB.Select(&num, sql_str, h.boss_id)
+		if err != nil {
+			fmt.Println(err.Error())
+			return err
+		}
+		Mola_get := num[0].Int32
+		sql_str = "update User_data set mola=mola+? where uid=?"
+		_, err := DB.Exec(sql_str, Mola_get, h.uid)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		sql_str = "delete Boss_data where Boss_id=?"
+		_, err = DB.Exec(sql_str, h.boss_id)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		sql_str = "delete Now_Battle where Boss_id=?"
+		_, err = DB.Exec(sql_str, h.boss_id)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+	}
 	if err != nil {
-		h.Re_chan <- false
+		h.Re_chan <- 0
 		close(h.Re_chan)
 		return errors.New("数据库错误")
 	}
@@ -331,11 +368,16 @@ func DB_Hit_Boss(h Hit) error {
 	}
 	_, err = DB.Exec(sql_str, h.uid, h.boss_id, IsKill, h.atk) //更新用户历史
 	if err != nil {
-		h.Re_chan <- false
+		h.Re_chan <- 0
 		close(h.Re_chan)
 		return errors.New("数据库错误")
 	}
-	h.Re_chan <- true
+	if Hp == 0 {
+		h.Re_chan <- 2 //击杀
+	} else {
+		h.Re_chan <- 1 //造成伤害
+	}
+
 	close(h.Re_chan)
 	return nil
 

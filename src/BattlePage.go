@@ -41,6 +41,7 @@ func BattlePage(c *gin.Context) {
 
 	data["Boss_id"] = Boss_id
 	data["Atk"] = U_D.Atk
+	data["Mola"] = B_D[0].Mola
 	c.HTML(http.StatusOK, "BattlePage.html", data)
 }
 
@@ -49,17 +50,22 @@ func Hit_verify(c *gin.Context) {
 	c.Request.ParseForm()
 	uid, _ := strconv.Atoi(data["uid"].(string))
 	Boss_id, _ := strconv.Atoi(c.Request.Form["Boss_id"][0])
+	Mola, _ := strconv.Atoi(c.Request.Form["Mola"][0])
 	Atk, _ := strconv.Atoi(c.Request.Form["Atk"][0])
-	var Re chan bool = make(chan bool)
+	var Re chan int = make(chan int)
 	var T Hit = Hit{uid: uid, boss_id: Boss_id, atk: Atk, Re_chan: Re}
+
 	Hit_ch <- T
+
 	var flag = <-Re
 	var result string
 
-	if flag == true {
+	if flag == 1 {
 		result = "出击成功"
-	} else {
+	} else if flag == 0 {
 		result = "出击失败"
+	} else if flag == 2 {
+		result = "成功击杀Boss，获得赏金" + strconv.Itoa(Mola)
 	}
 	data["result"] = result
 	c.HTML(http.StatusOK, "verify.html", data)
