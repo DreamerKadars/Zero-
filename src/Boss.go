@@ -9,6 +9,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func Get_Boss_data_str(B_D Boss_data) []string {
+	var Boss_data_str []string = make([]string, 5)
+	Boss_data_str[0] = "Boss id    :" + strconv.Itoa(B_D.Boss_id)
+	Boss_data_str[1] = "剩余HP     :" + strconv.Itoa(B_D.Hp)
+	Boss_data_str[2] = "最大HP     :" + strconv.Itoa(B_D.Max_Hp)
+	Boss_data_str[3] = "竞争玩家数量:" + strconv.Itoa(B_D.Play_num)
+	Boss_data_str[4] = "赏金数额    :" + strconv.Itoa(B_D.Mola)
+	return Boss_data_str
+}
 func Boss_data_add(c *gin.Context) {
 	c.Request.ParseForm()
 	boss_num, _ := strconv.Atoi(c.Request.Form["boss_num"][0])

@@ -8,6 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+func Get_User_data_str(U_D User_data) [7]string {
+	var User_data_str [7]string
+	User_data_str[0] = "Uid  :" + strconv.Itoa(U_D.Uid)
+	User_data_str[1] = "Name :" + U_D.Name
+	User_data_str[2] = "ATK  :" + strconv.Itoa(U_D.Atk)
+	User_data_str[3] = "Mola :" + strconv.Itoa(U_D.Mola)
+	User_data_str[4] = "状态1 :" + strconv.Itoa(U_D.Buff1)
+	User_data_str[5] = "状态2 :" + strconv.Itoa(U_D.Buff2)
+	User_data_str[6] = "状态3 :" + strconv.Itoa(U_D.Buff3)
+	return User_data_str
+}
 func MyPage(c *gin.Context) {
 	data := Get_cookie(c)
 	uid, _ := strconv.Atoi(data["uid"].(string))
@@ -23,16 +34,6 @@ func MyPage(c *gin.Context) {
 	} else {
 		data["Data_falg"] = true
 	}
-
-	var User_data_str [7]string
-	User_data_str[0] = "Uid  :" + strconv.Itoa(U_D.Uid)
-	User_data_str[1] = "Name :" + U_D.Name
-	User_data_str[2] = "ATK  :" + strconv.Itoa(U_D.Atk)
-	User_data_str[3] = "Mola :" + strconv.Itoa(U_D.Mola)
-	User_data_str[4] = "状态1 :" + strconv.Itoa(U_D.Buff1)
-	User_data_str[5] = "状态2 :" + strconv.Itoa(U_D.Buff2)
-	User_data_str[6] = "状态3 :" + strconv.Itoa(U_D.Buff3)
-	data["User_data_str"] = User_data_str
-
+	data["User_data_str"] = Get_User_data_str(U_D)
 	c.HTML(http.StatusOK, "MyPage.html", data)
 }

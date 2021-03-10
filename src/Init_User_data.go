@@ -32,6 +32,6 @@ func Init_User_data(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-
-	c.HTML(http.StatusOK, "MyPage.html", data)
+	data["result"] = "成功初始化信息！"
+	c.HTML(http.StatusOK, "verify.html", data)
 }

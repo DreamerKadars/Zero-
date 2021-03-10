@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sync"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -32,9 +33,10 @@ type Boss_data struct {
 	Mola     int `db:"mola"`
 }
 type User_history struct {
-	Uid     int `db:"uid"`
-	Boss_id int `db:"Boss_id"`
-	Hp      int `db:"Hp"`
+	Uid     int  `db:"uid"`
+	Boss_id int  `db:"Boss_id"`
+	Hp      int  `db:"Hp"`
+	IsKill  bool `db:"IsKill"`
 }
 type Now_Battle struct {
 	Boss_id int `db:"Boss_id"`
@@ -54,6 +56,10 @@ func init() {
 		return
 	}
 	fmt.Println("连接数据库成功！")
+
+	fmt.Println("建立信道，接受用户请求")
+	go DB_deal_hit()
+
 	DB = database
 }
 
@@ -181,6 +187,16 @@ func DB_get_Boss_Data() ([]Boss_data, error) {
 	}
 	return B_d, nil
 }
+func DB_get_Boss_Data_one(boss_id int) ([]Boss_data, error) {
+	var B_d []Boss_data
+	sql := "select * from Boss_data where boss_id = ?"
+	err := DB.Select(&B_d, sql, boss_id)
+	if err != nil {
+		fmt.Println("exec failed, ", err)
+		return B_d, err
+	}
+	return B_d, nil
+}
 
 //插入Boss信息
 //为Boss注册信息
@@ -229,6 +245,14 @@ func DB_get_History(uid int) []User_history {
 
 //用户参与战斗
 func DB_join_battle(uid, Boss_id int) error {
+
+	a, _ := DB_get_Boss_Data_one(Boss_id)
+	if a == nil {
+		return errors.New("此id不存在！！！")
+	}
+	if a[0].Hp == 0 {
+		return errors.New("此Boss已经被击败！！！")
+	}
 	sql := "insert into Now_Battle (Boss_id,uid) values (?,?)"
 	r, err := DB.Exec(sql, Boss_id, uid)
 	if err != nil {
@@ -246,7 +270,75 @@ func DB_join_battle(uid, Boss_id int) error {
 //与该用户打同一boss的对手
 func DB_Compete(uid int, boss_id int) []User_data {
 	var user_data []User_data
-	sql_str := "select (,) from Now_battle inner join User_data on Now_battle.uid=User_data.uid where User_data.uid != ? and boss_id=?"
+	sql_str := "select Now_battle.uid,name from Now_battle inner join User_data on Now_battle.uid=User_data.uid where User_data.uid != ? and boss_id=?"
+	fmt.Println(sql_str)
 	DB.Select(&user_data, sql_str, uid, boss_id)
 	return user_data
+}
+
+var M map[int]sync.Mutex = make(map[int]sync.Mutex)
+
+type Hit struct {
+	uid     int
+	boss_id int
+	atk     int
+	Re_chan chan bool
+}
+
+var Hit_ch chan Hit = make(chan Hit)
+
+func DB_deal_hit() {
+	for v := range Hit_ch {
+		err := DB_Hit_Boss(v) //通过信号的方式传递信息，自动阻塞
+		fmt.Println(err)
+	}
+}
+func DB_Hit_Boss(h Hit) error {
+	//查这个boss还有多少hp
+	sql_str := "select Hp from Boss_data where Boss_id = ?"
+	var num []sql.NullInt32
+	DB.Select(&num, sql_str, h.boss_id)
+	if num == nil || !num[0].Valid {
+		h.Re_chan <- false
+		close(h.Re_chan)
+		return errors.New("没有这个Boss")
+	}
+	Hp := num[0].Int32
+	if Hp == 0 {
+		h.Re_chan <- false
+		close(h.Re_chan)
+		return errors.New("此Boss已经挂了")
+	}
+	if Hp-int32(h.atk) > 0 {
+		Hp = Hp - int32(h.atk)
+	} else {
+		Hp = 0
+	}
+
+	sql_str = "update Boss_data set HP=? where Boss_id=?"
+	_, err := DB.Exec(sql_str, Hp, h.boss_id) //更新boss状态
+	if err != nil {
+		h.Re_chan <- false
+		close(h.Re_chan)
+		return errors.New("数据库错误")
+	}
+	sql_str = "insert into User_history (uid,Boss_id,IsKill,Hp) values (?,?,?,?)"
+	var IsKill int
+	if Hp == 0 {
+		IsKill = 1
+	} else {
+		IsKill = 0
+	}
+	_, err = DB.Exec(sql_str, h.uid, h.boss_id, IsKill, h.atk) //更新用户历史
+	if err != nil {
+		h.Re_chan <- false
+		close(h.Re_chan)
+		return errors.New("数据库错误")
+	}
+	h.Re_chan <- true
+	close(h.Re_chan)
+	return nil
+
+	//够不够？
+	//改一下，是否改成功？
 }

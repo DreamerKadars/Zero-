@@ -22,12 +22,14 @@ create table Boss_data(
 create table User_history(
     uid int not null,
     Boss_id int not null,
+    IsKill int not null,
     Hp int not null
 ) comment = '用户历史';
 
 create table Now_Battle(
     Boss_id  int not null ,
-    uid int not null
+    uid int not null,
+    primary key (Boss_id,uid)
 ) comment = '对战信息';
 
 create table Adm(

@@ -1,12 +1,25 @@
 {{template "top" .}}
 <html>
-    <h1>状态信息</h1><br>
-    {{.User_data}}
+    <h1>用户状态信息</h1><br>
+    {{range .User_data_str}} {{. }}<br> {{end}}
     <hr>
-    
-    竞争对手
-    
-    出击
+
+    <h1>Boss状态信息</h1><br>
+    {{range .Boss_data_str}} {{. }}<br> {{end}}
+    <hr>
+
+    <form id="formid" action ="/Hit_verify" method="post" enctype="application/x-www-form-urlencoded">
+        <input type="hidden" name="Boss_id" value="{{.Boss_id}}">
+        <input type="hidden" name="Atk" value="{{.Atk}}">
+    </form>
+
+    <div style="width: 60px;float: left;margin-left: 20px"></div>
+        <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">出击</button>
+    </div>
+
+    <h1>竞争对手</h1><br>
+    {{range .U_D_Complete_str}} {{. }}<br> {{end}}
+    <hr>
 </html>
 
 
