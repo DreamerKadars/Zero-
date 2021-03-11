@@ -37,6 +37,6 @@ func Login_verify(c *gin.Context) {
 
 	data["result"] = result
 	data["nextpage_flag"] = true
-	data["nextpage"] = "Index"
+	data["nextpage"] = "index"
 	c.HTML(http.StatusOK, "verify.html", data)
 }

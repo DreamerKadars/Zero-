@@ -32,6 +32,7 @@ func main() {
 	r.POST("/Join_Battle", Join_Battle)         //参与战斗信息
 	r.POST("/Hit_verify", Hit_verify)           //Hit验证信息
 	r.POST("/Exit_verify", Exit_verify)         //退出验证
+	r.POST("/user_num_add", user_num_add)       //添加一定数量的用户
 
 	// 监听并在 0.0.0.0:8080 上启动服务
 	r.Use(TlsHandler())

@@ -32,10 +32,8 @@ func Index(c *gin.Context) {
 			data["battle"] = true
 			data["user_battle"] = user_battle
 		}
-		data["User_history"] = DB_get_History(uid)
+		data["User_history"] = DB_get_History_group(uid)
 		data["Boss_Data"], _ = DB_get_Boss_Data_Live()
-
 		c.HTML(http.StatusOK, "index.html", data)
 	}
-
 }

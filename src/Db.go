@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -53,10 +55,10 @@ func init() {
 	err := database.Ping()
 	if err != nil {
 		fmt.Println("连接数据库失败！")
+		fmt.Println(err.Error())
 		return
 	}
 	fmt.Println("连接数据库成功！")
-
 	fmt.Println("建立信道，接受用户请求")
 	go DB_deal_hit()
 
@@ -81,19 +83,87 @@ func DB_connect() error {
 func DB_register(uid int, pwd string) error {
 
 	sql := "insert into User (uid,pwd) values (?,?)"
-	r, err := DB.Exec(sql, uid, pwd)
+	_, err := DB.Exec(sql, uid, pwd)
 	if err != nil {
 		fmt.Println("exec failed,", err)
 		return err
 	}
-	id, err := r.LastInsertId()
-	if err != nil {
-		fmt.Println("exec failed,", err)
-		return err
-	}
-	fmt.Println("insert succ", id)
-	fmt.Println(uid, " ", pwd)
+	fmt.Println("成功插入用户：", uid)
 	return nil
+}
+
+//注册很多个用户
+func DB_add_user(user_num int) int {
+	fmt.Println("开始插入用户。。。。")
+	startTime := time.Now().UnixNano()
+	var affect int = 0
+	var max_uid []sql.NullInt32
+	sql := "select max(uid) as uid from User"
+	err := DB.Select(&max_uid, sql)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return affect
+	}
+
+	var now_id int
+	if max_uid[0].Valid {
+		now_id = int(max_uid[0].Int32)
+		now_id = now_id + 1
+	} else {
+		now_id = 1
+	}
+	var Last chan error = make(chan error)
+	var con_num int = 0
+	var Binfa_num int = 50
+	for i := now_id; i < now_id+user_num; i++ {
+
+		go func(uid int) {
+			for con_num > Binfa_num {
+				time.Sleep(time.Duration(2) * time.Second)
+			}
+
+			con_num++
+			for DB_register(uid, strconv.Itoa(uid)) != nil {
+
+			}
+			// err = DB_register(uid, strconv.Itoa(uid))
+			// if err != nil {
+			// 	Last <- err
+
+			// 	fmt.Println(err.Error())
+
+			// 	return
+			// }
+			var U_D User_data = User_data{uid, "normal", 35, 0, 0, 0, 0}
+			for DB_insert_User_data(U_D) != nil {
+
+			}
+
+			Last <- err
+
+			con_num--
+		}(i)
+
+	}
+	var E []error = make([]error, 0)
+	for i := now_id; i < now_id+user_num; i++ {
+		err = <-Last
+		if err == nil {
+			affect++
+		} else {
+			E = append(E, err)
+		}
+	}
+	for _, value := range E {
+		println(value.Error())
+	}
+	endTime := time.Now().UnixNano()
+	seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
+	fmt.Println("总共完成：", affect)
+	fmt.Println("总共用时：", seconds, "s")
+	fmt.Println("平均用时：", seconds/float64(affect), "s")
+	return affect
 }
 
 //一个用户是否存在
@@ -162,17 +232,11 @@ func DB_get_User_data(uid int) (User_data, error) {
 //为用户注册信息
 func DB_insert_User_data(U_D User_data) error {
 	sql := "insert into User_data (uid,name,atk,mola,buff1,buff2,buff3) values (?,?,?,?,?,?,?)"
-	r, err := DB.Exec(sql, U_D.Uid, U_D.Name, U_D.Atk, U_D.Mola, U_D.Buff1, U_D.Buff2, U_D.Buff3)
+	_, err := DB.Exec(sql, U_D.Uid, U_D.Name, U_D.Atk, U_D.Mola, U_D.Buff1, U_D.Buff2, U_D.Buff3)
 	if err != nil {
 		fmt.Println("exec failed,", err)
 		return err
 	}
-	id, err := r.LastInsertId()
-	if err != nil {
-		fmt.Println("exec failed,", err)
-		return err
-	}
-	fmt.Println("insert succ", id)
 	return nil
 }
 
@@ -187,12 +251,16 @@ func DB_get_Boss_Data(limit string) ([]Boss_data, error) {
 	}
 	return B_d, nil
 }
+
+//根据生存分类
 func DB_get_Boss_Data_Live() ([]Boss_data, error) {
 	return DB_get_Boss_Data("where Hp != 0 ")
 }
 func DB_get_Boss_Data_Die() ([]Boss_data, error) {
 	return DB_get_Boss_Data("where Hp = 0 ")
 }
+
+//得到一个boss信息
 func DB_get_Boss_Data_one(boss_id int) ([]Boss_data, error) {
 	var B_d []Boss_data
 	sql := "select * from Boss_data where boss_id = ?"
@@ -241,10 +309,18 @@ func DB_get_Battle(uid int) []Now_Battle {
 	return now_battle
 }
 
-//获得用户过去的历史
-func DB_get_History(uid int) []User_history {
+//获得用户过去的历史--详细
+func DB_get_History_all(uid int) []User_history {
 	var user_history []User_history
 	sql_str := "select * from User_history where uid = ?"
+	DB.Select(&user_history, sql_str, uid)
+	return user_history
+}
+
+//获得用户过去的历史--粗略
+func DB_get_History_group(uid int) []User_history {
+	var user_history []User_history
+	sql_str := "select Boss_id,sum(Hp) as Hp,sum(IsKill) as IsKill from User_history where uid = ? group by Boss_id;"
 	DB.Select(&user_history, sql_str, uid)
 	return user_history
 }
@@ -313,6 +389,7 @@ func DB_Compete(uid int, boss_id int) []User_data {
 
 var M map[int]sync.Mutex = make(map[int]sync.Mutex)
 
+//打击信道结构
 type Hit struct {
 	uid     int
 	boss_id int
@@ -322,12 +399,15 @@ type Hit struct {
 
 var Hit_ch chan Hit = make(chan Hit)
 
+//处理打击
 func DB_deal_hit() {
 	for v := range Hit_ch {
 		err := DB_Hit_Boss(v) //通过信号的方式传递信息，自动阻塞
 		fmt.Println(err)
 	}
 }
+
+//进行打击
 func DB_Hit_Boss(h Hit) error {
 	//查这个boss还有多少hp
 	sql_str := "select Hp from Boss_data where Boss_id = ?"

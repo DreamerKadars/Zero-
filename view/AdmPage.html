@@ -7,7 +7,20 @@
         <hr>
         <a href="Boss_data_page">管理Boss信息库</a>
         <hr>
-        
+
+        <hr>
+        <h1>生成用户并初始化数据</h1>
+        <p>请输入生成用户的数量：</p><br>
+        <form id="formid" action ="/user_num_add" method="post" enctype="application/x-www-form-urlencoded">
+            <div style="width: 90px;float: left">
+                <input class="tl-price-input" type="number" name="user_num" placeholder="10">
+            </div>
+        </form>
+        <div style="width: 60px;float: left;margin-left: 20px"></div>
+            <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">生成</button>
+        </div>
+        <hr>
+
     {{else}}
         <h1>没有权限访问</h1>
     {{end}}
