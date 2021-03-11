@@ -3,11 +3,13 @@
     <tr>
         <td>Boss id</td>
         <td>造成伤害</td>
+        <td>是否击杀</td>
     </tr>   
     {{range .User_history}} 
         <tr>
             <td>{{ .Boss_id}}</td>
             <td>{{ .Hp}}</td>
+            <td>{{ .IsKill}}</td>
         </tr>
     {{end}}
 </table>

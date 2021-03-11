@@ -33,5 +33,7 @@ func Init_User_data(c *gin.Context) {
 		return
 	}
 	data["result"] = "成功初始化信息！"
+	data["nextpage_flag"] = true
+	data["nextpage"] = "MyPage"
 	c.HTML(http.StatusOK, "verify.html", data)
 }

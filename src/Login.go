@@ -26,7 +26,8 @@ func Login_verify(c *gin.Context) {
 	if err == nil {
 		//设置cookie
 		fmt.Println(uid_str + "登陆成功，设置cookie！")
-		c.SetCookie("uid", uid_str, 0, "/", "127.0.0.1", false, true) //时间为0,代表是会话cookie
+		c.SetCookie("uid", uid_str, 0, "/", "127.0.0.1", false, true)          //时间为0,代表是会话cookie
+		c.SetCookie("uid", uid_str, 0, "/", "www.loveranran.xyz", false, true) //域名也设置一下
 		data["uid"] = uid_str
 		data["login_flag"] = true
 		result = "尊敬的用户" + uid_str + "，恭喜您登陆成功"
@@ -35,6 +36,7 @@ func Login_verify(c *gin.Context) {
 	}
 
 	data["result"] = result
-
+	data["nextpage_flag"] = true
+	data["nextpage"] = "Index"
 	c.HTML(http.StatusOK, "verify.html", data)
 }

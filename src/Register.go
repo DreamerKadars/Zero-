@@ -28,5 +28,9 @@ func Register_verify(c *gin.Context) {
 	}
 	data := Get_cookie(c)
 	data["result"] = result
+
+	data["nextpage_flag"] = true
+	data["nextpage"] = "MyPage"
+
 	c.HTML(http.StatusOK, "verify.html", data)
 }

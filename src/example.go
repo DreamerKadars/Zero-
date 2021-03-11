@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/unrolled/secure"
 )
 
 func main() {
@@ -12,7 +13,9 @@ func main() {
 	r := gin.Default()
 	r.LoadHTMLGlob("../view/*")
 	r.Static("./static", "../static")
-	r.GET("/index", Index)
+
+	r.GET("/", Index)
+	r.GET("/index", Index)                   //主页
 	r.GET("/register", Register)             //注册界面
 	r.GET("/login", Login)                   //登陆界面
 	r.GET("/logout", Logout)                 //注销
@@ -28,7 +31,28 @@ func main() {
 	r.POST("/Boss_data_add", Boss_data_add)     //插入boss信息
 	r.POST("/Join_Battle", Join_Battle)         //参与战斗信息
 	r.POST("/Hit_verify", Hit_verify)           //Hit验证信息
-	// 监听并在 0.0.0.0:8080 上启动服务
-	r.Run(":8080")
+	r.POST("/Exit_verify", Exit_verify)         //退出验证
 
+	// 监听并在 0.0.0.0:8080 上启动服务
+	r.Use(TlsHandler())
+	r.RunTLS(":443", "../static/5305314_www.loveranran.xyz.pem", "../static/5305314_www.loveranran.xyz.key")
+
+}
+
+func TlsHandler() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		secureMiddleware := secure.New(secure.Options{
+			SSLRedirect: true,
+			SSLHost:     "localhost:443",
+		})
+		err := secureMiddleware.Process(c.Writer, c.Request)
+
+		// If there was an error, do not continue.
+		if err != nil {
+			return
+		}
+
+		c.Next()
+	}
 }

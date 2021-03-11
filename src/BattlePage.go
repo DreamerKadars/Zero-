@@ -42,7 +42,15 @@ func BattlePage(c *gin.Context) {
 	data["Boss_id"] = Boss_id
 	data["Atk"] = U_D.Atk
 	data["Mola"] = B_D[0].Mola
+	data["uid"] = uid
+	if B_D[0].Hp == 0 {
+		data["Live"] = false
+	} else {
+		data["Live"] = true
+	}
+
 	c.HTML(http.StatusOK, "BattlePage.html", data)
+
 }
 
 func Hit_verify(c *gin.Context) {
@@ -58,15 +66,20 @@ func Hit_verify(c *gin.Context) {
 	Hit_ch <- T
 
 	var flag = <-Re
+
 	var result string
 
-	if flag == 1 {
-		result = "出击成功"
-	} else if flag == 0 {
+	if flag != 0 {
+		result = "出击成功，对Boss：" + strconv.Itoa(Boss_id) + "造成了" + strconv.Itoa(Atk) + "点伤害，当前Boss还剩余" + strconv.Itoa(flag) + "点血量"
+	} else if flag == -1 {
 		result = "出击失败"
-	} else if flag == 2 {
+	} else if flag == 0 {
 		result = "成功击杀Boss，获得赏金" + strconv.Itoa(Mola)
 	}
 	data["result"] = result
+
+	data["nextpage_flag"] = true
+	data["nextpage"] = "BattlePage?Boss_id=" + c.Request.Form["Boss_id"][0]
+
 	c.HTML(http.StatusOK, "verify.html", data)
 }

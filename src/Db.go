@@ -177,15 +177,21 @@ func DB_insert_User_data(U_D User_data) error {
 }
 
 //查询展示Boos的信息
-func DB_get_Boss_Data() ([]Boss_data, error) {
+func DB_get_Boss_Data(limit string) ([]Boss_data, error) {
 	var B_d []Boss_data
-	sql := "select * from Boss_data "
+	sql := "select * from Boss_data " + limit
 	err := DB.Select(&B_d, sql)
 	if err != nil {
 		fmt.Println("exec failed, ", err)
 		return B_d, err
 	}
 	return B_d, nil
+}
+func DB_get_Boss_Data_Live() ([]Boss_data, error) {
+	return DB_get_Boss_Data("where Hp != 0 ")
+}
+func DB_get_Boss_Data_Die() ([]Boss_data, error) {
+	return DB_get_Boss_Data("where Hp = 0 ")
 }
 func DB_get_Boss_Data_one(boss_id int) ([]Boss_data, error) {
 	var B_d []Boss_data
@@ -258,6 +264,9 @@ func DB_join_battle(uid, Boss_id int) error {
 	r, err := DB.Exec(sql, Boss_id, uid)
 	if err != nil {
 		fmt.Println("exec failed,", err)
+		if err.Error()[12] == 'D' && err.Error()[13] == 'u' {
+			return errors.New("你已经参与了此场战斗！")
+		}
 		return err
 	}
 	//add——playnum
@@ -274,12 +283,30 @@ func DB_join_battle(uid, Boss_id int) error {
 	}
 	return nil
 }
+func DB_exit_battle(uid, Boss_id int) error {
+	a, _ := DB_get_Boss_Data_one(Boss_id)
+	if a == nil {
+		return errors.New("此id不存在！！！")
+	}
+	sql := "delete from Now_Battle where uid=? and Boss_id=?"
+	_, err := DB.Exec(sql, uid, Boss_id)
+	if err != nil {
+		fmt.Println("exec failed,", err)
+		return err
+	}
+	sql = "update Boss_data set play_num=play_num-1 where Boss_id=?"
+	_, err = DB.Exec(sql, Boss_id)
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+	return nil
+}
 
 //与该用户打同一boss的对手
 func DB_Compete(uid int, boss_id int) []User_data {
 	var user_data []User_data
 	sql_str := "select Now_battle.uid,name from Now_battle inner join User_data on Now_battle.uid=User_data.uid where User_data.uid != ? and boss_id=?"
-	fmt.Println(sql_str)
 	DB.Select(&user_data, sql_str, uid, boss_id)
 	return user_data
 }
@@ -307,13 +334,13 @@ func DB_Hit_Boss(h Hit) error {
 	var num []sql.NullInt32
 	DB.Select(&num, sql_str, h.boss_id)
 	if num == nil || !num[0].Valid {
-		h.Re_chan <- 0
+		h.Re_chan <- -1
 		close(h.Re_chan)
 		return errors.New("没有这个Boss")
 	}
 	Hp := num[0].Int32
 	if Hp == 0 {
-		h.Re_chan <- 0
+		h.Re_chan <- -1
 		close(h.Re_chan)
 		return errors.New("此Boss已经挂了")
 	}
@@ -340,22 +367,22 @@ func DB_Hit_Boss(h Hit) error {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-
-		sql_str = "delete Boss_data where Boss_id=?"
-		_, err = DB.Exec(sql_str, h.boss_id)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-
-		sql_str = "delete Now_Battle where Boss_id=?"
-		_, err = DB.Exec(sql_str, h.boss_id)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+		//这里不应该删除，用户应该可以看到被杀死的Boss
+		// sql_str = "delete from Boss_data where Boss_id=?"
+		// _, err = DB.Exec(sql_str, h.boss_id)
+		// if err != nil {
+		// 	fmt.Println(err.Error())
+		// }
+		//这里不应该删除，用户的历史也要记录
+		// sql_str = "delete from Now_Battle where Boss_id=? and uid=?"
+		// _, err = DB.Exec(sql_str, h.boss_id,h.uid)
+		// if err != nil {
+		// 	fmt.Println(err.Error())
+		// }
 
 	}
 	if err != nil {
-		h.Re_chan <- 0
+		h.Re_chan <- -1
 		close(h.Re_chan)
 		return errors.New("数据库错误")
 	}
@@ -368,14 +395,14 @@ func DB_Hit_Boss(h Hit) error {
 	}
 	_, err = DB.Exec(sql_str, h.uid, h.boss_id, IsKill, h.atk) //更新用户历史
 	if err != nil {
-		h.Re_chan <- 0
+		h.Re_chan <- -1
 		close(h.Re_chan)
 		return errors.New("数据库错误")
 	}
 	if Hp == 0 {
-		h.Re_chan <- 2 //击杀
+		h.Re_chan <- 0 //击杀
 	} else {
-		h.Re_chan <- 1 //造成伤害
+		h.Re_chan <- int(Hp) //剩余血量
 	}
 
 	close(h.Re_chan)

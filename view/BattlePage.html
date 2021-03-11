@@ -7,6 +7,7 @@
     <h1>Boss状态信息</h1><br>
     {{range .Boss_data_str}} {{. }}<br> {{end}}
     <hr>
+    {{if .Live}}
 
     <form id="formid" action ="/Hit_verify" method="post" enctype="application/x-www-form-urlencoded">
         <input type="hidden" name="Boss_id" value="{{.Boss_id}}">
@@ -15,12 +16,30 @@
     </form>
 
     <div style="width: 60px;float: left;margin-left: 20px"></div>
-        <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">出击</button>
+        <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">出击！</button>
+    </div>
+
+    <form id="formid2" action ="/Exit_verify" method="post" enctype="application/x-www-form-urlencoded">
+        <input type="hidden" name="Boss_id" value="{{.Boss_id}}">
+        <input type="hidden" name="uid" value="{{.uid}}">
+    </form>
+    <div style="width: 60px;float: left;margin-left: 20px"></div>
+        <button class="ant-btn ant-btn-red" form="formid2" type="submit" value="Submit">退出战斗</button>
     </div>
 
     <h1>竞争对手</h1><br>
     {{range .U_D_Complete_str}} {{. }}<br> {{end}}
     <hr>
+    {{else}}
+        <h1>此Boss已经被击败，请退出战斗</h1>
+        <form id="formid" action ="/Exit_verify" method="post" enctype="application/x-www-form-urlencoded">
+            <input type="hidden" name="Boss_id" value="{{.Boss_id}}">
+            <input type="hidden" name="uid" value="{{.uid}}">
+        </form>
+        <div style="width: 60px;float: left;margin-left: 20px"></div>
+            <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">退出</button>
+        </div>
+    {{end}}
 </html>
 
 

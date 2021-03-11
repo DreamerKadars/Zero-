@@ -3,5 +3,9 @@
 	<h1>
 		{{ .result }}
 	</h1>
+	<br>
+	{{if .nextpage_flag}}
+		<a href="/{{.nextpage}}">返回</a>
+	{{end}}
 </html>
 {{template "footer" .}}
