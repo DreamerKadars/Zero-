@@ -18,11 +18,9 @@ func Get_Boss_data_str(B_D Boss_data) []string {
 	Boss_data_str[4] = "赏金数额    :" + strconv.Itoa(B_D.Mola)
 	return Boss_data_str
 }
-func Boss_data_add(c *gin.Context) {
-	c.Request.ParseForm()
-	boss_num, _ := strconv.Atoi(c.Request.Form["boss_num"][0])
-	var B_D []Boss_data = make([]Boss_data, boss_num)
+func Creat_Boss_rand(num int) []Boss_data {
 	max_boss_id := DB_get_maxBoss_id()
+	var B_D []Boss_data = make([]Boss_data, num)
 	rand.Seed(time.Now().Unix())
 	for key, _ := range B_D {
 		B_D[key].Boss_id = key + 1 + max_boss_id
@@ -31,7 +29,15 @@ func Boss_data_add(c *gin.Context) {
 		B_D[key].Mola = B_D[key].Hp + rand.Intn(1000)
 		B_D[key].Play_num = 0
 	}
+	return B_D
+}
+func Boss_data_add(c *gin.Context) {
+	c.Request.ParseForm()
+	boss_num, _ := strconv.Atoi(c.Request.Form["boss_num"][0])
+
+	B_D := Creat_Boss_rand(boss_num)
 	DB_insert_Boss_data(B_D)
+
 	c.Redirect(http.StatusMovedPermanently, "admpage")
 }
 func Boss_data_page(c *gin.Context) {

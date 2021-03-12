@@ -1,0 +1,18 @@
+{{define "AdmDataTable"}}
+<table border="1">
+    <tr>
+        <td>表名</td>
+        <td>记录数</td>
+        <td>数据容量(MB)</td>
+        <td>索引容量(MB)</td>
+    </tr>   
+    {{range .AdmDataTable}} 
+        <tr>
+            <td>{{ .Table_Name}}</td>
+            <td>{{ .Log_num}}</td>
+            <td>{{ .Data_M}}</td>
+            <td>{{ .Index_M}}</td>
+        </tr>
+    {{end}}
+</table>
+{{end}}

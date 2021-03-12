@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -22,6 +23,10 @@ func AdmPage(c *gin.Context) {
 		DB_data[i] = DB_name[i] + "的数量是：" + strconv.Itoa(DB_num(DB_name[i]))
 	}
 	data["DB_information"] = DB_data
-
+	data["AdmDataTable"], err = Get_Adm_Data()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	c.HTML(http.StatusOK, "AdmPage.html", data)
 }

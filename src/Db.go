@@ -119,13 +119,23 @@ func DB_add_user(user_num int) int {
 	for i := now_id; i < now_id+user_num; i++ {
 
 		go func(uid int) {
+			var try_time int = 0 //最大尝试次数
+			const max_try_time = 10
 			for con_num > Binfa_num {
 				time.Sleep(time.Duration(2) * time.Second)
+				try_time++
+				if try_time > max_try_time {
+					return
+				}
 			}
-
 			con_num++
 			for DB_register(uid, strconv.Itoa(uid)) != nil {
 
+				time.Sleep(time.Duration(1) * time.Second)
+				try_time++
+				if try_time > max_try_time {
+					return
+				}
 			}
 			// err = DB_register(uid, strconv.Itoa(uid))
 			// if err != nil {
@@ -137,7 +147,7 @@ func DB_add_user(user_num int) int {
 			// }
 			var U_D User_data = User_data{uid, "normal", 35, 0, 0, 0, 0}
 			for DB_insert_User_data(U_D) != nil {
-
+				time.Sleep(time.Duration(1) * time.Second)
 			}
 
 			Last <- err
@@ -258,6 +268,21 @@ func DB_get_Boss_Data_Live() ([]Boss_data, error) {
 }
 func DB_get_Boss_Data_Die() ([]Boss_data, error) {
 	return DB_get_Boss_Data("where Hp = 0 ")
+}
+
+//得到存活的Boss num
+func DB_get_Live_Boss_num() int {
+	sql_str := "select count(*) from Boss_data where Hp>0"
+	var num []sql.NullInt32
+	DB.Select(&num, sql_str)
+	if num == nil {
+		return 10000000
+	}
+	if num[0].Valid {
+		return int(num[0].Int32)
+	} else {
+		return 0
+	}
 }
 
 //得到一个boss信息
@@ -490,4 +515,42 @@ func DB_Hit_Boss(h Hit) error {
 
 	//够不够？
 	//改一下，是否改成功？
+}
+
+//找到血量最少且存活的那些Boss
+func DB_Find_Min_Hp_Boss() ([]Boss_data, error) {
+	var B_d []Boss_data
+	sql := "select * from Boss_data where Hp=(select min(Hp) from Boss_data where Hp>0);"
+	err := DB.Select(&B_d, sql)
+	if err != nil {
+		fmt.Println("exec failed, ", err)
+		return B_d, err
+	}
+	return B_d, nil
+}
+
+type Adm_data struct {
+	Table_Name string  `db:"表名"`
+	Log_num    int     `db:"记录数"`
+	Data_M     float32 `db:"数据容量(MB)"`
+	Index_M    float32 `db:"索引容量(MB)"`
+}
+
+func Get_Adm_Data() ([]Adm_data, error) {
+	var A_d []Adm_data
+	sql := `select
+	table_name as '表名',
+	table_rows as '记录数',
+	truncate(data_length/1024/1024, 2) as '数据容量(MB)',
+	truncate(index_length/1024/1024, 2) as '索引容量(MB)'
+	from information_schema.tables
+	where table_schema ='Zero'
+	order by data_length desc, index_length desc;`
+
+	err := DB.Select(&A_d, sql)
+	if err != nil {
+		fmt.Println("exec failed, ", err)
+		return A_d, err
+	}
+	return A_d, nil
 }

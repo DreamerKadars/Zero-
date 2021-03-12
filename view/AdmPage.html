@@ -3,7 +3,7 @@
     {{if .Adm}}
 	    <h1>数据库概览：</h1><hr>
         <br>
-        {{range .DB_information}} {{. }}<br> {{end}}
+            {{template "AdmDataTable" .}}
         <hr>
         <a href="Boss_data_page">管理Boss信息库</a>
         <hr>

@@ -24,7 +24,22 @@
     <div style="width: 60px;float: left;margin-left: 20px"></div>
         <button class="ant-btn ant-btn-red" form="formid" type="submit" value="Submit">参与</button>
     </div>
+
+    
     <hr>
+
+    <h1>快速参加一场战斗:</h1><br>
+    <p>这场战斗将自动选择目前血量最少的Boss进行出击</p>
+    <form id="formid3" action ="/Quick_Join_And_Hit_Html" method="post" enctype="application/x-www-form-urlencoded">
+        
+    </form>
+    <div style="width: 60px;float: left;margin-left: 20px"></div>
+        <button class="ant-btn ant-btn-red" form="formid3" type="submit" value="Submit">快速参与！</button>
+    </div>
+
+    
+    <hr>
+
     <h1>战斗历史</h1>
     {{template "BattleTable" .}}
     
