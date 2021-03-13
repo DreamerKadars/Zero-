@@ -27,7 +27,7 @@ func Init_User_data(c *gin.Context) {
 	U_D.Buff3 = 0
 
 	data["User_data"] = U_D
-	err := DB_insert_User_data(U_D)
+	err := DB_insert_User_data_point(U_D, DB)
 	if err != nil {
 		fmt.Println(err)
 		return

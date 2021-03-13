@@ -22,7 +22,7 @@ func Creat_Boss_rand(num int) []Boss_data {
 	max_boss_id := DB_get_maxBoss_id()
 	var B_D []Boss_data = make([]Boss_data, num)
 	rand.Seed(time.Now().Unix())
-	for key, _ := range B_D {
+	for key := range B_D {
 		B_D[key].Boss_id = key + 1 + max_boss_id
 		B_D[key].Hp = rand.Intn(1000) + rand.Intn(100000)*(rand.Intn(2)/2) + rand.Intn(1000000)*(rand.Intn(2)/2)
 		B_D[key].Max_Hp = B_D[key].Hp

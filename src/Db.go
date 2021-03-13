@@ -14,6 +14,10 @@ import (
 
 var DB *sqlx.DB
 
+const DB_extra_num int = 4
+
+var DB_extra []*sqlx.DB = make([]*sqlx.DB, DB_extra_num)
+
 type User struct {
 	Uid int    `db:"uid"`
 	Pwd string `db:"pwd"`
@@ -63,6 +67,10 @@ func init() {
 	go DB_deal_hit()
 
 	DB = database
+
+	for key := range DB_extra {
+		DB_extra[key], _ = sqlx.Open("mysql", "root:ma794866734@tcp(81.70.159.251:3306)/Zero")
+	}
 }
 
 //测试连接
@@ -79,16 +87,16 @@ func DB_connect() error {
 	return nil
 }
 
-//注册一个用户
-func DB_register(uid int, pwd string) error {
+//注册一个用户,指定数据库指针
+func DB_register_point(uid int, pwd string, DB_p *sqlx.DB) error {
 
 	sql := "insert into User (uid,pwd) values (?,?)"
-	_, err := DB.Exec(sql, uid, pwd)
+	_, err := DB_p.Exec(sql, uid, pwd)
 	if err != nil {
 		fmt.Println("exec failed,", err)
 		return err
 	}
-	fmt.Println("成功插入用户：", uid)
+	//fmt.Println("成功插入用户：", uid)
 	return nil
 }
 
@@ -115,65 +123,94 @@ func DB_add_user(user_num int) int {
 	}
 	var Last chan error = make(chan error)
 	var con_num int = 0
-	var Binfa_num int = 50
-	for i := now_id; i < now_id+user_num; i++ {
+	var dis_con_num = 0
+	var Binfa_num int = 100
 
-		go func(uid int) {
-			var try_time int = 0 //最大尝试次数
-			const max_try_time = 10
-			for con_num > Binfa_num {
-				time.Sleep(time.Duration(2) * time.Second)
-				try_time++
-				if try_time > max_try_time {
-					return
-				}
+	var con_num_chan chan bool = make(chan bool)     //处理连接信号信道
+	var dis_con_num_chan chan bool = make(chan bool) //处理断开连接信号信道
+
+	go func() { //处理接入请求
+		for range con_num_chan {
+			if con_num-dis_con_num > Binfa_num {
+				time.Sleep(time.Duration(1) * time.Second)
+				fmt.Println("并发限制，等待！", con_num-dis_con_num)
 			}
+			fmt.Println("接入连接")
 			con_num++
-			for DB_register(uid, strconv.Itoa(uid)) != nil {
+		}
+	}()
+	go func() { //处理断开请求
+		for range dis_con_num_chan {
+			dis_con_num++
+			fmt.Println("断开连接")
+		}
+	}()
+	var E []error = make([]error, 0)      //汇总所有连接的结束状态
+	var ans_num chan int = make(chan int) //汇总最后的数量
+	go func() {                           //处理结束请求
+		for i := now_id; i < now_id+user_num; i++ {
+			err = <-Last
+			if err == nil {
+				affect++
+			} else {
+				E = append(E, err)
+			}
+		}
+		close(con_num_chan) //全部接受完毕，关闭信道
+		for _, value := range E {
+			println(value.Error())
+		}
+		endTime := time.Now().UnixNano()
+		seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
+		fmt.Println("总共完成：", affect)
+		fmt.Println("总共用时：", seconds, "s")
+		fmt.Println("平均用时：", seconds/float64(affect), "s")
+		ans_num <- affect
+	}()
 
+	for i := now_id; i < now_id+user_num; i++ {
+		go func(uid int) {
+			var try_time int = 0
+			const max_try_time = 10 //最大尝试次数
+			con_num_chan <- true
+			for {
+				E := DB_register_point(uid, strconv.Itoa(uid), DB_extra[uid%DB_extra_num])
+				if E == nil {
+					break
+				} else {
+					fmt.Println(E.Error())
+				}
+				fmt.Println(E.Error())
 				time.Sleep(time.Duration(1) * time.Second)
 				try_time++
+				fmt.Println("失败，继续尝试！")
 				if try_time > max_try_time {
+					fmt.Println("彻底失败，放弃尝试！")
 					return
 				}
 			}
-			// err = DB_register(uid, strconv.Itoa(uid))
-			// if err != nil {
-			// 	Last <- err
-
-			// 	fmt.Println(err.Error())
-
-			// 	return
-			// }
 			var U_D User_data = User_data{uid, "normal", 35, 0, 0, 0, 0}
-			for DB_insert_User_data(U_D) != nil {
+			for {
+				E := DB_insert_User_data_point(U_D, DB_extra[uid%DB_extra_num])
+				if E == nil {
+					break
+				} else {
+					fmt.Println(E.Error())
+				}
 				time.Sleep(time.Duration(1) * time.Second)
+				try_time++
+				fmt.Println("失败，继续尝试！")
+				if try_time > max_try_time {
+					fmt.Println("彻底失败，放弃尝试！")
+					return
+				}
 			}
-
 			Last <- err
-
-			con_num--
+			dis_con_num_chan <- true
 		}(i)
+	}
 
-	}
-	var E []error = make([]error, 0)
-	for i := now_id; i < now_id+user_num; i++ {
-		err = <-Last
-		if err == nil {
-			affect++
-		} else {
-			E = append(E, err)
-		}
-	}
-	for _, value := range E {
-		println(value.Error())
-	}
-	endTime := time.Now().UnixNano()
-	seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
-	fmt.Println("总共完成：", affect)
-	fmt.Println("总共用时：", seconds, "s")
-	fmt.Println("平均用时：", seconds/float64(affect), "s")
-	return affect
+	return <-ans_num
 }
 
 //一个用户是否存在
@@ -240,13 +277,14 @@ func DB_get_User_data(uid int) (User_data, error) {
 }
 
 //为用户注册信息
-func DB_insert_User_data(U_D User_data) error {
+func DB_insert_User_data_point(U_D User_data, DB_p *sqlx.DB) error {
 	sql := "insert into User_data (uid,name,atk,mola,buff1,buff2,buff3) values (?,?,?,?,?,?,?)"
-	_, err := DB.Exec(sql, U_D.Uid, U_D.Name, U_D.Atk, U_D.Mola, U_D.Buff1, U_D.Buff2, U_D.Buff3)
+	_, err := DB_p.Exec(sql, U_D.Uid, U_D.Name, U_D.Atk, U_D.Mola, U_D.Buff1, U_D.Buff2, U_D.Buff3)
 	if err != nil {
 		fmt.Println("exec failed,", err)
 		return err
 	}
+	//fmt.Println("成功插入用户数据！")
 	return nil
 }
 

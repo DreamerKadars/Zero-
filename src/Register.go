@@ -18,7 +18,7 @@ func Register_verify(c *gin.Context) {
 	var pwd = c.Request.Form["pwd"][0]
 	uid, _ := strconv.Atoi(c.Request.Form["uid"][0])
 
-	err := DB_register(uid, pwd)
+	err := DB_register_point(uid, pwd, DB)
 	//c.Request.Form[];
 	var result string
 	if err == nil {

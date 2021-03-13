@@ -60,7 +60,9 @@ func Hit_verify(c *gin.Context) {
 	Boss_id, _ := strconv.Atoi(c.Request.Form["Boss_id"][0])
 	Mola, _ := strconv.Atoi(c.Request.Form["Mola"][0])
 	Atk, _ := strconv.Atoi(c.Request.Form["Atk"][0])
+
 	var Re chan int = make(chan int)
+
 	var T Hit = Hit{uid: uid, boss_id: Boss_id, atk: Atk, Re_chan: Re}
 
 	Hit_ch <- T
