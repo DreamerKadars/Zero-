@@ -13,7 +13,6 @@ func Login(c *gin.Context) {
 }
 func Login_verify(c *gin.Context) {
 	data := Get_cookie(c)
-
 	fmt.Println("接受用户登陆请求")
 	c.Request.ParseForm()
 	fmt.Println("收到的数据", c.Request.Form)

@@ -46,3 +46,22 @@ func Boss_data_page(c *gin.Context) {
 	data["Boss_Data"] = B_D
 	c.HTML(http.StatusOK, "boss_page.html", data)
 }
+
+//不为0 出击成功 -1失败 0成功击杀Boss，获得赏金"
+func Hit_Boss(uid int, Boss_id int, Atk int, Mola int) (int, string) {
+	var Re chan int = make(chan int)
+	var T Hit = Hit{uid: uid, boss_id: Boss_id, atk: Atk, Re_chan: Re}
+	//进攻
+	DB_join_battle(uid, Boss_id)
+	Hit_ch <- T
+	var flag = <-Re
+	var result string
+	if flag != 0 && flag != -1 {
+		result = "用户" + strconv.Itoa(uid) + "出击成功，对Boss：" + strconv.Itoa(Boss_id) + "造成了" + strconv.Itoa(Atk) + "点伤害，当前Boss还剩余" + strconv.Itoa(flag) + "点血量"
+	} else if flag == -1 {
+		result = "用户" + strconv.Itoa(uid) + "出击失败"
+	} else if flag == 0 {
+		result = "用户" + strconv.Itoa(uid) + "成功击杀Boss，获得赏金" + strconv.Itoa(Mola)
+	}
+	return flag, result
+}

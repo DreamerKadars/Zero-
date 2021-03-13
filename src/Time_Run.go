@@ -13,6 +13,7 @@ const Boss_Live_num_min int = 30
 func Add_Boss(add_num int) {
 	Boss_num := DB_get_Live_Boss_num()
 	if Boss_num < Boss_Live_num_min {
+		fmt.Println("定时任务生效，生产", Boss_Live_num_min, "个Boss")
 		DB_insert_Boss_data(Creat_Boss_rand(Boss_Live_num_min))
 	}
 }

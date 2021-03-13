@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -228,6 +229,30 @@ func DB_found(uid int, pwd string) error {
 	return nil
 }
 
+//向指定目录中输出num个uid,pwd
+func DB_Get_User_file(num int, filename string) error {
+	var usr []User
+	sql := "select * from User limit ?"
+	err := DB.Select(&usr, sql, num)
+
+	if err != nil {
+		fmt.Println("exec failed, ", err)
+		return err
+	}
+	f, err1 := os.OpenFile(filename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0664)
+	if err1 != nil {
+		fmt.Println("exec failed, ", err1)
+		return err1
+	}
+	for key := range usr {
+		f.WriteString("uid=" + strconv.Itoa(usr[key].Uid) + "&pwd=" + usr[key].Pwd + "\n")
+	}
+
+	f.Sync()
+	fmt.Println("写完了")
+	return nil
+}
+
 //检查一个用户是否是adm
 func DB_is_adm(uid int) error {
 	var adm []Adm
@@ -390,7 +415,6 @@ func DB_get_History_group(uid int) []User_history {
 
 //用户参与战斗
 func DB_join_battle(uid, Boss_id int) error {
-
 	a, _ := DB_get_Boss_Data_one(Boss_id)
 	if a == nil {
 		return errors.New("此id不存在！！！")
@@ -402,17 +426,18 @@ func DB_join_battle(uid, Boss_id int) error {
 	sql := "insert into Now_Battle (Boss_id,uid) values (?,?)"
 	r, err := DB.Exec(sql, Boss_id, uid)
 	if err != nil {
-		fmt.Println("exec failed,", err)
+
 		if err.Error()[12] == 'D' && err.Error()[13] == 'u' {
 			return errors.New("你已经参与了此场战斗！")
 		}
+		fmt.Println("exec failed,", err)
 		return err
 	}
 	//add——playnum
-
 	sql = "update Boss_data set play_num=play_num+1 where Boss_id=?"
 	_, err = DB.Exec(sql, Boss_id)
 	if err != nil {
+
 		fmt.Println(err.Error())
 	}
 	_, err = r.LastInsertId()
@@ -466,16 +491,19 @@ var Hit_ch chan Hit = make(chan Hit)
 func DB_deal_hit() {
 	for v := range Hit_ch {
 		err := DB_Hit_Boss(v) //通过信号的方式传递信息，自动阻塞
-		fmt.Println(err)
+		if err != nil {
+			//暂时屏蔽，因为无效错误不好观察
+			//fmt.Println(err.Error())
+		}
 	}
 }
 
 //进行打击
-func DB_Hit_Boss(h Hit) error {
+func DB_Hit_Boss(h Hit) error { //对于同一个boss，要求只有一个用户能进入请求
 	//查这个boss还有多少hp
 	sql_str := "select Hp from Boss_data where Boss_id = ?"
 	var num []sql.NullInt32
-	DB.Select(&num, sql_str, h.boss_id)
+	DB.Select(&num, sql_str, h.boss_id) //拿boss数据
 	if num == nil || !num[0].Valid {
 		h.Re_chan <- -1
 		close(h.Re_chan)
@@ -492,12 +520,10 @@ func DB_Hit_Boss(h Hit) error {
 	} else {
 		Hp = 0
 	}
-
 	sql_str = "update Boss_data set HP=? where Boss_id=?"
 	_, err := DB.Exec(sql_str, Hp, h.boss_id) //更新boss状态
-
 	if Hp == 0 {
-		sql_str := "select mola from Boss_data where Boss_id = ?"
+		sql_str := "select mola from Boss_data where Boss_id = ?" //看它值多少
 		var num []sql.NullInt32
 		err = DB.Select(&num, sql_str, h.boss_id)
 		if err != nil {
@@ -505,31 +531,18 @@ func DB_Hit_Boss(h Hit) error {
 			return err
 		}
 		Mola_get := num[0].Int32
-		sql_str = "update User_data set mola=mola+? where uid=?"
+		sql_str = "update User_data set mola=mola+? where uid=?" //加钱
 		_, err := DB.Exec(sql_str, Mola_get, h.uid)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		//这里不应该删除，用户应该可以看到被杀死的Boss
-		// sql_str = "delete from Boss_data where Boss_id=?"
-		// _, err = DB.Exec(sql_str, h.boss_id)
-		// if err != nil {
-		// 	fmt.Println(err.Error())
-		// }
-		//这里不应该删除，用户的历史也要记录
-		// sql_str = "delete from Now_Battle where Boss_id=? and uid=?"
-		// _, err = DB.Exec(sql_str, h.boss_id,h.uid)
-		// if err != nil {
-		// 	fmt.Println(err.Error())
-		// }
-
 	}
 	if err != nil {
 		h.Re_chan <- -1
 		close(h.Re_chan)
 		return errors.New("数据库错误")
 	}
-	sql_str = "insert into User_history (uid,Boss_id,IsKill,Hp) values (?,?,?,?)"
+	sql_str = "insert into User_history (uid,Boss_id,IsKill,Hp) values (?,?,?,?)" //用户记录
 	var IsKill int
 	if Hp == 0 {
 		IsKill = 1
@@ -556,10 +569,10 @@ func DB_Hit_Boss(h Hit) error {
 }
 
 //找到血量最少且存活的那些Boss
-func DB_Find_Min_Hp_Boss() ([]Boss_data, error) {
+func DB_Find_Min_Hp_Boss(Boss_num int) ([]Boss_data, error) {
 	var B_d []Boss_data
-	sql := "select * from Boss_data where Hp=(select min(Hp) from Boss_data where Hp>0);"
-	err := DB.Select(&B_d, sql)
+	sql := "select * from Boss_data where Hp>0 order by Hp limit ?"
+	err := DB.Select(&B_d, sql, Boss_num)
 	if err != nil {
 		fmt.Println("exec failed, ", err)
 		return B_d, err
@@ -574,6 +587,7 @@ type Adm_data struct {
 	Index_M    float32 `db:"索引容量(MB)"`
 }
 
+//拿到数据库管理信息
 func Get_Adm_Data() ([]Adm_data, error) {
 	var A_d []Adm_data
 	sql := `select
