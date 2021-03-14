@@ -9,10 +9,10 @@ rowCnt=`cat $test_file | wc -l `
 # 读取文件中的内容到数组中
 array=($(cat $test_file))
 
-num=10
+num=$1
 for((v=1;v<=$num;v++))
 do
-    curl -s -w '\n' -d ${array[v]} -k https://www.loveranran.xyz/Quick_Join_And_Hit_Shell >> result.txt &
+    curl -s -w '\n' -d ${array[v]} -k https://$2/Quick_Join_And_Hit_Shell >> result.txt &
 done
 
 wait #等待子任务全部完成

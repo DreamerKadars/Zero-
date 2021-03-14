@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -52,9 +53,24 @@ func Hit_Boss(uid int, Boss_id int, Atk int, Mola int) (int, string) {
 	var Re chan int = make(chan int)
 	var T Hit = Hit{uid: uid, boss_id: Boss_id, atk: Atk, Re_chan: Re}
 	//进攻
-	DB_join_battle(uid, Boss_id)
+
+	go func() {
+		//插入战斗列表，因为不是实时的所有可以go
+		startTime := time.Now().UnixNano()
+		DB_join_battle(uid, Boss_id)
+		endTime := time.Now().UnixNano()
+		seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
+		fmt.Println("插入战斗列表信息用时(此过程为异步过程)：", seconds)
+	}()
+
+	startTime := time.Now().UnixNano()
 	Hit_ch <- T
+	//等待被处理
 	var flag = <-Re
+	endTime := time.Now().UnixNano()
+	seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
+	fmt.Println("等待战斗被处理用时：", seconds)
+
 	var result string
 	if flag != 0 && flag != -1 {
 		result = "用户" + strconv.Itoa(uid) + "出击成功，对Boss：" + strconv.Itoa(Boss_id) + "造成了" + strconv.Itoa(Atk) + "点伤害，当前Boss还剩余" + strconv.Itoa(flag) + "点血量"

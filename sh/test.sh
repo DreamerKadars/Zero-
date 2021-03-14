@@ -1,6 +1,9 @@
 #!/bin/bash
-Njob=100 #任务总数
-Nproc=5 #最大并发进程数
+Njob=$1 #任务总数
+Nproc=$2 #最大并发进程数
+#¥3是单个进程循环访问多少次
+#¥3是 网站地址
+# 举例： ./test.sh 1 1 1 127.0.0.1
 function PushQue { #将pid追加到队列中
     Que="$Que $1"
     Nrun=$(($Nrun+1))
@@ -26,7 +29,7 @@ function ChkQue { #检查队列消息，如果有已经结束了的进程的PID�
     done
 }
 for ((i=0; i<$Njob; i++)); do
-    ./Quick_Hit.sh & #循环内容放到后台执行
+    ./Quick_Hit.sh $3 $4 & #循环内容放到后台执行
     PID=$!
     PushQue $PID
     while [[ $Nrun -ge $Nproc ]]; do #如果Nrun大于Nproc，就一直Chkque

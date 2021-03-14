@@ -10,7 +10,10 @@ import (
 func main() {
 
 	//DB_Get_User_file(200, "../sh/uid_pwd.txt")
+	// Get_TTL() //测一下数据库连接TTL
+	// for {
 
+	// }
 	fmt.Print("服务器启动！")
 	go Run_by_Time(10)
 
@@ -40,6 +43,7 @@ func main() {
 	r.POST("/Quick_Join_And_Hit_Html", Quick_Join_And_Hit_Html)   //快速出击验证
 	r.POST("/Quick_Join_And_Hit_Shell", Quick_Join_And_Hit_Shell) //快速出击脚本专用
 	// 监听并在 0.0.0.0:8080 上启动服务
+
 	r.Use(TlsHandler())
 	r.RunTLS(":443", "../static/5305314_www.loveranran.xyz.pem", "../static/5305314_www.loveranran.xyz.key")
 

@@ -217,8 +217,8 @@ func DB_add_user(user_num int) int {
 //一个用户是否存在
 func DB_found(uid int, pwd string) error {
 	var usr []User
-	sql := "select uid, pwd from User where uid=? && pwd =? "
-	err := DB.Select(&usr, sql, uid, pwd)
+	sql := "select uid, pwd from User where uid=" + strconv.Itoa(uid) + " and pwd =" + pwd
+	err := DB.Select(&usr, sql)
 	if err != nil {
 		fmt.Println("exec failed, ", err)
 		return err
@@ -284,10 +284,12 @@ func DB_num(table_name string) int {
 	return num[0]
 }
 
+//获得用户信息
 func DB_get_User_data(uid int) (User_data, error) {
 	var U_d []User_data
-	sql := "select * from User_data where uid=?"
-	err := DB.Select(&U_d, sql, uid)
+	sql := "select * from User_data where uid=" + strconv.Itoa(uid)
+
+	err := DB_extra[0].Select(&U_d, sql)
 	if err != nil {
 		fmt.Println("exec failed, ", err)
 		var err_data User_data
@@ -298,6 +300,22 @@ func DB_get_User_data(uid int) (User_data, error) {
 		var err_data User_data
 		return err_data, errors.New("没有找到该用户信息")
 	}
+	return U_d[0], nil
+}
+
+//校验用户并获得用户数据，预估是因为联合查询锁表的原因，这个函数自己跑还可以，但是放在系统里，就很慢
+func DB_check_and_get_User_data(uid int, pwd string) (User_data, error) {
+
+	var U_d []User_data
+	sql := "select User_data.uid,name,atk,mola,buff1,buff2,buff3 from User inner join User_Data  on  User.uid=User_data.uid where User.uid=" + strconv.Itoa(uid) + " and pwd= " + pwd
+	fmt.Println(sql)
+	_ = DB.Select(&U_d, sql)
+	if U_d == nil {
+		fmt.Println("通过用户和密码无法得到该用户信息")
+		var err_data User_data
+		return err_data, errors.New("没有找到该用户信息")
+	}
+
 	return U_d[0], nil
 }
 
@@ -490,7 +508,9 @@ var Hit_ch chan Hit = make(chan Hit)
 //处理打击
 func DB_deal_hit() {
 	for v := range Hit_ch {
+
 		err := DB_Hit_Boss(v) //通过信号的方式传递信息，自动阻塞
+
 		if err != nil {
 			//暂时屏蔽，因为无效错误不好观察
 			//fmt.Println(err.Error())
@@ -501,78 +521,110 @@ func DB_deal_hit() {
 //进行打击
 func DB_Hit_Boss(h Hit) error { //对于同一个boss，要求只有一个用户能进入请求
 	//查这个boss还有多少hp
-	sql_str := "select Hp from Boss_data where Boss_id = ?"
-	var num []sql.NullInt32
-	DB.Select(&num, sql_str, h.boss_id) //拿boss数据
-	if num == nil || !num[0].Valid {
+	sql_str := "select * from Boss_data where Boss_id = " + strconv.Itoa(h.boss_id)
+	var B_D []Boss_data
+	startTime := time.Now().UnixNano()
+
+	err := DB.Select(&B_D, sql_str) //拿boss数据
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	endTime := time.Now().UnixNano()
+	seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
+	fmt.Println("拿boss信息用时：", seconds)
+
+	if B_D == nil {
 		h.Re_chan <- -1
 		close(h.Re_chan)
 		return errors.New("没有这个Boss")
 	}
-	Hp := num[0].Int32
+	Hp := B_D[0].Hp
 	if Hp == 0 {
 		h.Re_chan <- -1
 		close(h.Re_chan)
 		return errors.New("此Boss已经挂了")
 	}
-	if Hp-int32(h.atk) > 0 {
-		Hp = Hp - int32(h.atk)
+
+	if Hp-h.atk > 0 { //伤害计算
+		Hp = Hp - h.atk
 	} else {
 		Hp = 0
 	}
-	sql_str = "update Boss_data set HP=? where Boss_id=?"
-	_, err := DB.Exec(sql_str, Hp, h.boss_id) //更新boss状态
-	if Hp == 0 {
-		sql_str := "select mola from Boss_data where Boss_id = ?" //看它值多少
-		var num []sql.NullInt32
-		err = DB.Select(&num, sql_str, h.boss_id)
-		if err != nil {
-			fmt.Println(err.Error())
-			return err
+	startTime = time.Now().UnixNano()
+	var E_chan chan error = make(chan error)
+	go func() {
+		sql_str = "update Boss_data set HP=" + strconv.Itoa(Hp) + " where Boss_id=" + strconv.Itoa(h.boss_id)
+		//这几个用了:=,和外面的变量没有关系
+		startTime := time.Now().UnixNano()
+		_, err = DB.Exec(sql_str) //更新boss状态
+		endTime := time.Now().UnixNano()
+		seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
+		fmt.Println("出击成功，更新boss血量用时：", seconds)
+
+		E_chan <- err //结束通知
+	}()
+
+	go func() {
+		if Hp == 0 {
+			Mola_get := B_D[0].Mola
+			sql_str = "update User_data set mola=mola+" + strconv.Itoa(Mola_get) + " where uid=" + strconv.Itoa(h.uid) //加钱
+			//这几个用了:=,和外面的变量没有关系
+			startTime := time.Now().UnixNano()
+			_, err := DB.Exec(sql_str)
+			endTime := time.Now().UnixNano()
+			seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
+			fmt.Println("为用户添加金钱用时：", seconds)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+			E_chan <- err //结束通知
+		} else {
+			E_chan <- err //结束通知
 		}
-		Mola_get := num[0].Int32
-		sql_str = "update User_data set mola=mola+? where uid=?" //加钱
-		_, err := DB.Exec(sql_str, Mola_get, h.uid)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
+	}()
+	err1 := <-E_chan
+	err2 := <-E_chan
+	if err1 != nil || err2 != nil {
+		fmt.Println("出现错误！！")
 	}
-	if err != nil {
-		h.Re_chan <- -1
-		close(h.Re_chan)
-		return errors.New("数据库错误")
+	endTime = time.Now().UnixNano()
+	seconds = float64((float64(endTime) - float64(startTime)) / 1e9)
+	fmt.Println("更新boss血量和用户金币，并发总用时：", seconds)
+
+	if Hp == 0 { //推送返回信息
+		h.Re_chan <- 0 //击杀
+	} else {
+		h.Re_chan <- int(Hp) //剩余血量
 	}
-	sql_str = "insert into User_history (uid,Boss_id,IsKill,Hp) values (?,?,?,?)" //用户记录
+	close(h.Re_chan)
+	//进行收尾工作,以下都是异步操作
 	var IsKill int
 	if Hp == 0 {
 		IsKill = 1
 	} else {
 		IsKill = 0
 	}
-	_, err = DB.Exec(sql_str, h.uid, h.boss_id, IsKill, h.atk) //更新用户历史
+	sql_str = "insert into User_history (uid,Boss_id,IsKill,Hp) values (" + strconv.Itoa(h.uid) + "," + strconv.Itoa(h.boss_id) + "," + strconv.Itoa(IsKill) + "," + strconv.Itoa(h.atk) + ")" //用户记录
+	startTime = time.Now().UnixNano()
+	_, err = DB.Exec(sql_str) //更新用户历史
+	endTime = time.Now().UnixNano()
+	seconds = float64((float64(endTime) - float64(startTime)) / 1e9)
+	fmt.Println("为用户添加历史记录用时：", seconds)
+
 	if err != nil {
-		h.Re_chan <- -1
-		close(h.Re_chan)
 		return errors.New("数据库错误")
 	}
-	if Hp == 0 {
-		h.Re_chan <- 0 //击杀
-	} else {
-		h.Re_chan <- int(Hp) //剩余血量
-	}
-
-	close(h.Re_chan)
 	return nil
-
-	//够不够？
-	//改一下，是否改成功？
 }
 
 //找到血量最少且存活的那些Boss
 func DB_Find_Min_Hp_Boss(Boss_num int) ([]Boss_data, error) {
 	var B_d []Boss_data
-	sql := "select * from Boss_data where Hp>0 order by Hp limit ?"
-	err := DB.Select(&B_d, sql, Boss_num)
+
+	var err error
+	//这个地方不用？，用？特别影响查询速度
+	sql := "select * from Boss_data where Hp>0 order by Hp limit " + strconv.Itoa(Boss_num)
+	err = DB.Select(&B_d, sql)
 	if err != nil {
 		fmt.Println("exec failed, ", err)
 		return B_d, err
@@ -605,4 +657,25 @@ func Get_Adm_Data() ([]Adm_data, error) {
 		return A_d, err
 	}
 	return A_d, nil
+}
+
+//计算一次简单数据库查询完成的时间
+func Get_TTL() float32 {
+	//var U []User_data
+	startTime := time.Now().UnixNano()
+	for i := 1; i <= 1000; i++ {
+		DB_get_User_data(123457)
+
+		// sql := "select * from User_data where uid=123457;"
+		// err := DB.Select(&U, sql)
+		// if err != nil {
+		// 	fmt.Println(err.Error())
+		// } else {
+		// 	//fmt.Println(U)
+		// }
+	}
+	endTime := time.Now().UnixNano()
+	seconds := float64((float64(endTime) - float64(startTime)) / 1e9)
+	fmt.Println("查询1000条用户数据用时：", seconds)
+	return float32(seconds)
 }
